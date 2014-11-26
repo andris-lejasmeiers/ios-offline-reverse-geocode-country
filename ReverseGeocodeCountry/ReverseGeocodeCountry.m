@@ -1,72 +1,106 @@
 //
 //  ReverseGeocodeCountry.m
-//  countrymap
 //
 //  Created by Initlabs on 2/25/14.
 //  Copyright (c) 2014 Initlabs. All rights reserved.
 //
+// This code is distributed under the terms and conditions of the MIT license. 
 
 #import "ReverseGeocodeCountry.h"
 
-@interface ReverseGeocodeCountry() {
-    NSArray *countryData;
-}
-
-@end
 
 @implementation ReverseGeocodeCountry
-
-// initialize ReversGeocodeCountry class
--(id)init{
-    {
-        if (self = [super init])
-        {
-            NSString *filePath = [[NSBundle mainBundle] pathForResource:@"ReverseGeocodeCountry" ofType:@"json"];
-            NSData *jsonData = [[NSData alloc] initWithContentsOfFile:filePath];
-            countryData = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:nil];
-
-        }
-        return self;
-    }
+{
+    NSArray *_countryData;
 }
 
-// returns TRUE if point is inside the polygon
-- (BOOL) pointInPolygon : (float) lat : (float) lng : (NSArray*) polygon {
-    BOOL found = FALSE;
-    unsigned long i = 0;
-    unsigned long j = 0;
-    for(i = 0, j = [polygon count] - 1; i < [polygon count]; j = i++){
-        if( (([[[polygon objectAtIndex:i] objectAtIndex:1] floatValue] > lat) != ([[[polygon objectAtIndex:j] objectAtIndex:1] floatValue] > lat)) && (lng < ( [[[polygon objectAtIndex:j] objectAtIndex:0] floatValue] - [[[polygon objectAtIndex:i] objectAtIndex:0] floatValue] ) * ( lat - [[[polygon objectAtIndex:j] objectAtIndex:1] floatValue] ) / ([[[polygon objectAtIndex:j] objectAtIndex:1] floatValue] - [[[polygon objectAtIndex:i] objectAtIndex:1] floatValue]) + [[[polygon objectAtIndex:i] objectAtIndex:0] floatValue] ) ){
+- (instancetype)initWithGeoJSONFileUrl:(NSURL *)fileUrl
+{
+    self = [self init];
+
+    if (self)
+    {
+        _countryData = [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfURL:fileUrl]
+                                                      options:0
+                                                        error:nil];
+    }
+
+    return self;
+}
+
+/**
+ @brief     Checks if a latitude and longitude of a point are contained in a polygon.
+ @details   Based on the Jordan curve theorem, for more info:
+            http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+ @param     polygon     Series of the polygon's coordinates.
+ @return    YES if the point lies within the polygon, NO otherwise.
+*/
+- (BOOL)isLatitude:(double)lat
+         longitude:(double)lng
+         inPolygon:(NSArray *)polygon
+{
+    BOOL found = NO;
+    NSUInteger i, j, count = polygon.count;
+    for (i = 0, j = count - 1; i < count; j = i++)
+    {
+        if((([polygon[i][1] doubleValue] > lat) != ([polygon[j][1] doubleValue] > lat)) &&
+           (lng < ([polygon[j][0] doubleValue] - [polygon[i][0] doubleValue])
+            * (lat - [polygon[i][1] doubleValue])
+            / ([polygon[j][1] doubleValue] - [polygon[i][1] doubleValue]) + [polygon[i][0] doubleValue])
+        ) {
             found = !found;
         }
     }
+
     return found;
 }
 
-// returns country name of the point
-- (NSString*) getCountry: (float) lat : (float) lng {
-    NSString * match = @"";
-    int found = FALSE;
-    for (int i=0; i<[countryData count]; i++){
-        if([[[[countryData objectAtIndex:i] objectForKey:@"geometry"] valueForKey:@"type"] isEqualToString:@"Polygon"]){
-            found = [self pointInPolygon: lat: lng: [[[[countryData objectAtIndex:i] objectForKey:@"geometry"] objectForKey:@"coordinates"] objectAtIndex:0]];
-            if(found) {
-                match = [NSString stringWithFormat:@"%@", [[countryData objectAtIndex:i] valueForKey:@"name"]];
-                return match;
-                break;
+- (NSString *)countryCodeForCoordinate:(CLLocationCoordinate2D)coordinate
+{
+    if (!CLLocationCoordinate2DIsValid(coordinate))
+        return nil;
+
+    double lat = coordinate.latitude, lng = coordinate.longitude;
+
+    for (NSDictionary *country in _countryData)
+    {
+        NSDictionary *geometry = country[@"geometry"];
+        NSArray *coordinates = geometry[@"coordinates"];
+
+        if (coordinates.count == 0)
+        {
+            continue;
+        }
+        
+        if([geometry[@"type"] isEqualToString:@"Polygon"])
+        {
+            // For some reason the coordinates in GeoJSON format are layed out so that each geometric polygon
+            // is wrapped in an array.
+            if([self isLatitude:lat
+                      longitude:lng
+                      inPolygon:coordinates.firstObject])
+            {
+                return country[@"id"];
             }
-        } else if([[[[countryData objectAtIndex:i] objectForKey:@"geometry"] valueForKey:@"type"] isEqualToString:@"MultiPolygon"]){
-            for (int j=0; j<[[[[countryData objectAtIndex:i] objectForKey:@"geometry"] objectForKey:@"coordinates"] count]; j++){
-                found = [self pointInPolygon: lat :lng: [[[[[countryData objectAtIndex:i] objectForKey:@"geometry"] objectForKey:@"coordinates"] objectAtIndex:j] objectAtIndex:0]];
-                if(found) {
-                    match = [NSString stringWithFormat:@"%@", [[countryData objectAtIndex:i] valueForKey:@"name"]];
-                    return match;
-                    break;
+        }
+
+        else if([geometry[@"type"] isEqualToString:@"MultiPolygon"])
+        {
+            for (NSArray *polygon in coordinates)
+            {
+                // For some reason the coordinates in GeoJSON format are layed out so that each geometric polygon
+                // is wrapped in an array.
+                if([self isLatitude:lat
+                          longitude:lng
+                          inPolygon:polygon.firstObject])
+                {
+                    return country[@"id"];
                 }
             }
         }
     }
-    return match;
+
+    return nil;
 }
 
 @end

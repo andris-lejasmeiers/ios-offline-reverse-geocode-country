@@ -10,7 +10,7 @@
 #import "ReverseGeocodeCountry.h"
 
 @interface CMViewController () {
-    ReverseGeocodeCountry *reverseGeocode;
+    ReverseGeocodeCountry *_geocoder;
 }
 
 @end
@@ -21,26 +21,16 @@
 {
     [super viewDidLoad];
 	// Do any additional setup after loading the view, typically from a nib.
-    
-    reverseGeocode = [[ReverseGeocodeCountry alloc] init];
+
+    NSURL *countries = [[NSBundle mainBundle] URLForResource:@"ReverseGeocodeCountry" withExtension:@"json"];
+
+    _geocoder = [[ReverseGeocodeCountry alloc] initWithGeoJSONFileUrl:countries];
 }
 
--(void)mapView:(MKMapView *)mapView regionDidChangeAnimated:(BOOL)animated{
-    
-    // get the center coordinate of the map
-    CLLocationCoordinate2D centre = [map centerCoordinate];
-    float lat = centre.latitude;
-    float lng = centre.longitude;
-    
-    // call the ReverseGeocodeCountry mehtod to get country name
-    country.text = [reverseGeocode getCountry:lat :lng];
-    
-}
-
-- (void)didReceiveMemoryWarning
+-(void)mapView:(MKMapView *)mapView regionDidChangeAnimated:(BOOL)animated
 {
-    [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
+    // call the ReverseGeocodeCountry mehtod to get country name
+    country.text = [_geocoder countryCodeForCoordinate:map.centerCoordinate];
 }
 
 @end
