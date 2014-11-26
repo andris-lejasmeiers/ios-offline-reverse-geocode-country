@@ -21,7 +21,7 @@
  @param     fileUrl     Provide a local GeoJSON file URL of country codes matching country boundaries
                         in geometric poligons. The GeoJSON may contain only coordinates of countries you 
                         are interested in.
-  @return   The initialized instance on success else nil,
+  @return   The initialized instance on success else nil.
 */
 - (instancetype)initWithGeoJSONFileUrl:(NSURL *)fileUrl;
 

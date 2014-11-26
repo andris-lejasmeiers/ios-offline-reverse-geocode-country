@@ -16,13 +16,15 @@
 
 - (instancetype)initWithGeoJSONFileUrl:(NSURL *)fileUrl
 {
-    self = [self init];
+    NSArray *countryData = [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfURL:fileUrl]
+                                                           options:0
+                                                             error:nil];
+    if (!countryData)
+        return nil;
 
-    if (self)
+    if (self = [self init])
     {
-        _countryData = [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfURL:fileUrl]
-                                                      options:0
-                                                        error:nil];
+        _countryData = countryData;
     }
 
     return self;
