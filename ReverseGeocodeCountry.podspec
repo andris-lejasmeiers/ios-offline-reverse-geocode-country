@@ -10,5 +10,5 @@ Pod::Spec.new do |s|
   s.source       = { :git => "https://github.com/andris-lejasmeiers/ios-offline-reverse-geocode-country.git", :tag => "1.1" }
   s.source_files = "ReverseGeocodeCountry/ReverseGeocodeCountry.{h,m}"
   s.framework    = "CoreLocation"
-  s.requires_arc = false
+  s.requires_arc = true
 end

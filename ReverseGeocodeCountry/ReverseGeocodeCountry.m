@@ -80,8 +80,8 @@
             // is wrapped in an array.
             if([self isLatitude:lat
                       longitude:lng
-                      inPolygon:coordinates.firstObject])
-            {
+                      inPolygon:coordinates.firstObject]
+            ) {
                 return country[@"id"];
             }
         }
@@ -94,8 +94,8 @@
                 // is wrapped in an array.
                 if([self isLatitude:lat
                           longitude:lng
-                          inPolygon:polygon.firstObject])
-                {
+                          inPolygon:polygon.firstObject]
+                ) {
                     return country[@"id"];
                 }
             }
